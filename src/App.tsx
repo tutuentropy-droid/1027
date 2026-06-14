@@ -6,17 +6,25 @@ import { ActionLog } from './components/ActionLog';
 import { ControlBar } from './components/ControlBar';
 import { BrainTypeSelector } from './components/BrainTypeSelector';
 import { NeuroReport } from './components/NeuroReport';
+import { NeuroEncyclopedia } from './components/NeuroEncyclopedia';
+import { EncyclopediaModal } from './components/EncyclopediaModal';
 import { useSimulator } from './hooks/useSimulator';
 
 function App() {
   const brainTypeId = useSimulator((s) => s.brainTypeId);
   const [showSelector, setShowSelector] = useState(false);
+  const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!brainTypeId) {
       setShowSelector(true);
     }
   }, [brainTypeId]);
+
+  const handleOpenEntry = (id: string) => {
+    setActiveEntryId(id);
+    if (showSelector) setShowSelector(false);
+  };
 
   return (
     <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
@@ -38,6 +46,7 @@ function App() {
           <div className="space-y-6 lg:col-span-4">
             <ModeDisplay />
             <StatusPanel />
+            <NeuroEncyclopedia onOpenEntry={handleOpenEntry} />
           </div>
 
           <div className="space-y-6 lg:col-span-4">
@@ -45,7 +54,7 @@ function App() {
           </div>
 
           <div className="space-y-6 lg:col-span-4">
-            <NeuroReport />
+            <NeuroReport onOpenEntry={handleOpenEntry} />
             <div className="h-full lg:max-h-[calc(100vh-700px)]">
               <ActionLog />
             </div>
@@ -63,6 +72,12 @@ function App() {
           showCloseButton={!!brainTypeId}
         />
       )}
+
+      <EncyclopediaModal
+        entryId={activeEntryId}
+        onClose={() => setActiveEntryId(null)}
+        onSelectEntry={(id) => setActiveEntryId(id)}
+      />
     </div>
   );
 }

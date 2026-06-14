@@ -13,7 +13,19 @@ import {
   Cpu,
   Shield,
   History,
+  ChevronRight,
 } from 'lucide-react';
+
+const METRIC_TO_ENTRY: Record<MetricType, string> = {
+  dopamine: 'dopamine',
+  stress: 'cortisol',
+  attention: 'attention_network',
+  fatigue: 'sleep_neuroplasticity',
+};
+
+interface Props {
+  onOpenEntry?: (id: string) => void;
+}
 
 function getMetricLevel(value: number): { label: string; tone: 'low' | 'normal' | 'high' | 'extreme'; color: string } {
   if (value >= 80) return { label: '极高', tone: 'extreme', color: '#ef4444' };
@@ -66,12 +78,18 @@ function formatDate(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function NeuroReport() {
+export function NeuroReport({ onOpenEntry }: Props) {
   const metrics = useSimulator((s) => s.metrics);
   const time = useSimulator((s) => s.time);
   const currentMode = useSimulator((s) => s.currentMode);
   const brainTypeId = useSimulator((s) => s.brainTypeId);
   const logs = useSimulator((s) => s.logs);
+
+  const handleMetricClick = (key: MetricType) => {
+    if (onOpenEntry) {
+      onOpenEntry(METRIC_TO_ENTRY[key]);
+    }
+  };
 
   const brainType = getBrainTypeById(brainTypeId);
   const mode = getModeById(currentMode);
@@ -132,14 +150,24 @@ export function NeuroReport() {
         {METRIC_CONFIGS.map((mc) => {
           const val = metrics[mc.key];
           const level = getMetricLevel(val);
+          const clickable = !!onOpenEntry;
           return (
             <div
               key={mc.key}
-              className="rounded-xl border border-white/5 bg-white/[0.02] p-2.5"
+              onClick={() => handleMetricClick(mc.key)}
+              className={`rounded-xl border border-white/5 bg-white/[0.02] p-2.5 transition-all ${
+                clickable
+                  ? 'cursor-pointer hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/[0.04]'
+                  : ''
+              }`}
             >
               <div className="mb-1 flex items-center justify-between">
                 <span className="text-[10px] text-white/50">{mc.name}</span>
-                {getMetricTrendIcon(val)}
+                {clickable ? (
+                  <ChevronRight size={10} className="text-white/20" />
+                ) : (
+                  getMetricTrendIcon(val)
+                )}
               </div>
               <div className="mb-1 flex items-baseline gap-1">
                 <span
@@ -163,6 +191,7 @@ export function NeuroReport() {
               </div>
               <div className="mt-1 text-[9px] font-medium" style={{ color: level.color }}>
                 {level.label}
+                {clickable && <span className="ml-1 text-white/20">· 科普</span>}
               </div>
             </div>
           );
@@ -197,21 +226,32 @@ export function NeuroReport() {
           神经化学速览
         </div>
         <div className="space-y-2">
-          {METRIC_CONFIGS.map((mc) => (
-            <div
-              key={mc.key}
-              className="rounded-lg border border-white/5 bg-white/[0.02] p-2.5"
-            >
-              <div className="mb-1 flex items-center gap-1.5">
-                <span>{mc.emoji}</span>
-                <span className="text-[11px] font-semibold text-white/80">{mc.name}</span>
-                <span className="text-[9px] text-white/30">{mc.description}</span>
+          {METRIC_CONFIGS.map((mc) => {
+            const clickable = !!onOpenEntry;
+            return (
+              <div
+                key={mc.key}
+                onClick={() => handleMetricClick(mc.key)}
+                className={`rounded-lg border border-white/5 bg-white/[0.02] p-2.5 transition-all ${
+                  clickable
+                    ? 'cursor-pointer hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/[0.04]'
+                    : ''
+                }`}
+              >
+                <div className="mb-1 flex items-center gap-1.5">
+                  <span>{mc.emoji}</span>
+                  <span className="text-[11px] font-semibold text-white/80">{mc.name}</span>
+                  <span className="text-[9px] text-white/30">{mc.description}</span>
+                  {clickable && (
+                    <ChevronRight size={11} className="ml-auto text-white/20" />
+                  )}
+                </div>
+                <p className="text-[11px] leading-relaxed text-white/50">
+                  {getNeurochemicalNote(mc.key, metrics[mc.key])}
+                </p>
               </div>
-              <p className="text-[11px] leading-relaxed text-white/50">
-                {getNeurochemicalNote(mc.key, metrics[mc.key])}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
