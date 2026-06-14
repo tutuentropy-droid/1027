@@ -9,6 +9,10 @@ const METRIC_EMOJI_MAP: Record<MetricType, string> = {
   fatigue: '⚡',
 };
 
+function formatHour(hour: number): string {
+  return `${hour.toString().padStart(2, '0')}:00`;
+}
+
 export function ActionLog() {
   const logs = useSimulator((s) => s.logs);
 
@@ -31,6 +35,8 @@ export function ActionLog() {
                 rounded-xl border p-3 transition-colors
                 ${log.isDayTransition
                   ? 'border-amber-500/20 bg-amber-500/[0.05] hover:bg-amber-500/[0.08]'
+                  : log.isTimeSkip
+                  ? 'border-cyan-500/20 bg-cyan-500/[0.05] hover:bg-cyan-500/[0.08]'
                   : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'
                 }
               `}
@@ -38,7 +44,13 @@ export function ActionLog() {
               <div className="mb-1.5 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{log.behaviorEmoji}</span>
-                  <span className={`text-sm font-medium ${log.isDayTransition ? 'text-amber-300' : 'text-white/85'}`}>
+                  <span className={`text-sm font-medium ${
+                    log.isDayTransition
+                      ? 'text-amber-300'
+                      : log.isTimeSkip
+                      ? 'text-cyan-300'
+                      : 'text-white/85'
+                  }`}>
                     {log.behaviorName}
                   </span>
                   {log.isDayTransition && (
@@ -46,8 +58,15 @@ export function ActionLog() {
                       日切
                     </span>
                   )}
+                  {log.isTimeSkip && (
+                    <span className="rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[10px] text-cyan-400">
+                      +{log.timeSkipHours}h
+                    </span>
+                  )}
                 </div>
-                <span className="text-xs text-white/30">第{log.day}天</span>
+                <span className="text-xs text-white/30">
+                  D{log.day} {formatHour(log.hour)}
+                </span>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {METRIC_CONFIGS.map((mc) => {

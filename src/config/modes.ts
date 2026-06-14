@@ -1,4 +1,4 @@
-import type { Mode, Metrics, MetricConfig } from '../types';
+import type { Mode, Metrics, MetricConfig, DecayConfigs, TimeState } from '../types';
 
 export const MODES: Mode[] = [
   {
@@ -93,6 +93,43 @@ export const INITIAL_METRICS: Metrics = {
   fatigue: 50,
 };
 
+export const INITIAL_TIME: TimeState = {
+  day: 1,
+  hour: 8,
+  totalHoursElapsed: 0,
+};
+
+export const DECAY_CONFIGS: DecayConfigs = {
+  dopamine: {
+    baseline: 50,
+    ratePerHour: 3,
+    min: 10,
+    max: 95,
+    direction: 'towards_baseline',
+  },
+  stress: {
+    baseline: 40,
+    ratePerHour: 2,
+    min: 15,
+    max: 95,
+    direction: 'towards_baseline',
+  },
+  attention: {
+    baseline: 50,
+    ratePerHour: 1.5,
+    min: 10,
+    max: 95,
+    direction: 'towards_baseline',
+  },
+  fatigue: {
+    baseline: 50,
+    ratePerHour: 1,
+    min: 5,
+    max: 98,
+    direction: 'towards_baseline',
+  },
+};
+
 export function getModeById(id: Mode['id'] | null): Mode | null {
   if (!id) return null;
   return MODES.find((m) => m.id === id) ?? null;
@@ -109,4 +146,10 @@ export const DAY_TRANSITION_META = {
   id: '__day_transition__',
   name: '新的一天',
   emoji: '🌅',
+} as const;
+
+export const TIME_SKIP_META = {
+  id: '__time_skip__',
+  name: '时间流逝',
+  emoji: '⏳',
 } as const;
