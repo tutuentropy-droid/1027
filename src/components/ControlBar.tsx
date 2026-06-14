@@ -1,6 +1,11 @@
 import { useSimulator } from '../hooks/useSimulator';
-import { Sun, RotateCcw, Clock } from 'lucide-react';
+import { getBrainTypeById } from '../config/brainTypes';
+import { Sun, RotateCcw, Clock, Brain } from 'lucide-react';
 import type { TimeSkipDuration } from '../types';
+
+interface Props {
+  onOpenSelector: () => void;
+}
 
 const TIME_SKIP_OPTIONS: { hours: TimeSkipDuration; label: string }[] = [
   { hours: 1, label: '+1h' },
@@ -21,11 +26,14 @@ function getTimeEmoji(hour: number): string {
   return '🌙';
 }
 
-export function ControlBar() {
+export function ControlBar({ onOpenSelector }: Props) {
   const time = useSimulator((s) => s.time);
+  const brainTypeId = useSimulator((s) => s.brainTypeId);
   const nextDay = useSimulator((s) => s.nextDay);
   const timeSkip = useSimulator((s) => s.timeSkip);
   const reset = useSimulator((s) => s.reset);
+
+  const brainType = getBrainTypeById(brainTypeId);
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 backdrop-blur-sm">
@@ -44,6 +52,24 @@ export function ControlBar() {
             {formatHour(time.hour)}
           </span>
         </div>
+        {brainType && (
+          <button
+            onClick={onOpenSelector}
+            className="
+              flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium transition-all
+              hover:brightness-110 active:scale-95
+            "
+            style={{
+              borderColor: `${brainType.color}40`,
+              backgroundColor: `${brainType.color}12`,
+              color: brainType.color,
+            }}
+          >
+            <Brain size={14} />
+            <span>{brainType.emoji}</span>
+            <span>{brainType.shortName}</span>
+          </button>
+        )}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1">

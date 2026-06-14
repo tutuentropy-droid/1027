@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { SimulatorState, Behavior, TimeSkipDuration } from '../types';
+import type { SimulatorState, Behavior, TimeSkipDuration, BrainTypeId } from '../types';
 import {
   INITIAL_METRICS,
   INITIAL_TIME,
@@ -7,6 +7,7 @@ import {
   DAY_TRANSITION_META,
   TIME_SKIP_META,
 } from '../config/modes';
+import { getBrainTypeById } from '../config/brainTypes';
 import {
   applyBehaviorEffect,
   evaluateMode,
@@ -23,6 +24,7 @@ interface SimulatorStore extends SimulatorState {
   nextDay: () => void;
   timeSkip: (hours: TimeSkipDuration) => void;
   reset: () => void;
+  setBrainType: (brainTypeId: BrainTypeId) => void;
 }
 
 const createInitialState = (): SimulatorState => ({
@@ -30,6 +32,7 @@ const createInitialState = (): SimulatorState => ({
   time: { ...INITIAL_TIME },
   logs: [],
   currentMode: evaluateMode(INITIAL_METRICS),
+  brainTypeId: null,
 });
 
 function getSleepDecayBonus(currentHour: number, hours: number): Partial<{ dopamine: number; stress: number; attention: number; fatigue: number }> | null {
@@ -56,17 +59,31 @@ function getSleepDecayBonus(currentHour: number, hours: number): Partial<{ dopam
   return null;
 }
 
-export const useSimulator = create<SimulatorStore>((set) => ({
+export const useSimulator = create<SimulatorStore>((set, get) => ({
   ...createInitialState(),
+
+  setBrainType: (brainTypeId: BrainTypeId) =>
+    set(() => {
+      const brainType = getBrainTypeById(brainTypeId);
+      const initialMetrics = brainType ? { ...brainType.initialMetrics } : { ...INITIAL_METRICS };
+      return {
+        brainTypeId,
+        metrics: initialMetrics,
+        time: { ...INITIAL_TIME },
+        logs: [],
+        currentMode: evaluateMode(initialMetrics),
+      };
+    }),
 
   applyBehavior: (behavior: Behavior) =>
     set((state) => {
-      const dynamicEffect = calculateBehaviorEffect(state.metrics, behavior);
+      const brainType = getBrainTypeById(state.brainTypeId);
+      const dynamicEffect = calculateBehaviorEffect(state.metrics, behavior, brainType);
       const metricsAfterBehavior = applyBehaviorEffect(state.metrics, dynamicEffect);
 
       const durationHours = behavior.durationHours ?? 1;
       const newTime = advanceTime(state.time, durationHours);
-      const metricsAfterDecay = applyDecay(metricsAfterBehavior, durationHours);
+      const metricsAfterDecay = applyDecay(metricsAfterBehavior, durationHours, brainType);
 
       let finalMetrics = metricsAfterDecay;
       let finalEffect = computeActualEffect(state.metrics, finalMetrics, dynamicEffect);
@@ -96,10 +113,11 @@ export const useSimulator = create<SimulatorStore>((set) => ({
 
   nextDay: () =>
     set((state) => {
+      const brainType = getBrainTypeById(state.brainTypeId);
       const hoursToNextDay = 24 - state.time.hour;
       const newTime = advanceTime(state.time, hoursToNextDay);
 
-      const metricsAfterDecay = applyDecay(state.metrics, hoursToNextDay);
+      const metricsAfterDecay = applyDecay(state.metrics, hoursToNextDay, brainType);
       const metricsAfterTransition = applyBehaviorEffect(metricsAfterDecay, DAY_TRANSITION_EFFECT);
 
       const combinedEffect: typeof DAY_TRANSITION_EFFECT = {};
@@ -131,8 +149,9 @@ export const useSimulator = create<SimulatorStore>((set) => ({
 
   timeSkip: (hours: TimeSkipDuration) =>
     set((state) => {
+      const brainType = getBrainTypeById(state.brainTypeId);
       const newTime = advanceTime(state.time, hours);
-      const metricsAfterDecay = applyDecay(state.metrics, hours);
+      const metricsAfterDecay = applyDecay(state.metrics, hours, brainType);
 
       let finalMetrics = metricsAfterDecay;
       const decayEffect: Partial<typeof state.metrics> = {};
@@ -172,5 +191,20 @@ export const useSimulator = create<SimulatorStore>((set) => ({
       };
     }),
 
-  reset: () => set(createInitialState()),
+  reset: () => {
+    const currentBrainTypeId = get().brainTypeId;
+    if (currentBrainTypeId) {
+      const brainType = getBrainTypeById(currentBrainTypeId);
+      const initialMetrics = brainType ? { ...brainType.initialMetrics } : { ...INITIAL_METRICS };
+      set({
+        metrics: initialMetrics,
+        time: { ...INITIAL_TIME },
+        logs: [],
+        currentMode: evaluateMode(initialMetrics),
+        brainTypeId: currentBrainTypeId,
+      });
+    } else {
+      set(createInitialState());
+    }
+  },
 }));

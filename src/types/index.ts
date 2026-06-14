@@ -88,7 +88,8 @@ export type SimulatorAction =
   | { type: 'NEXT_DAY' }
   | { type: 'TIME_SKIP'; hours: TimeSkipDuration }
   | { type: 'TICK'; hours: number }
-  | { type: 'RESET' };
+  | { type: 'RESET' }
+  | { type: 'SET_BRAIN_TYPE'; brainTypeId: BrainTypeId };
 
 export interface MetricConfig {
   key: MetricType;
@@ -96,4 +97,47 @@ export interface MetricConfig {
   emoji: string;
   gradient: string;
   description: string;
+}
+
+export type BrainTypeId = 'adhd' | 'anxiety' | 'high_control' | 'dopamine_sensitive';
+
+export interface BrainTypeModifier {
+  dopamine: number;
+  stress: number;
+  attention: number;
+  fatigue: number;
+}
+
+export interface BrainTypeBehaviorModifier {
+  categoryMultipliers?: Partial<Record<BehaviorCategory, BrainTypeModifier>>;
+  behaviorMultipliers?: Partial<Record<string, BrainTypeModifier>>;
+}
+
+export interface BrainType {
+  id: BrainTypeId;
+  name: string;
+  emoji: string;
+  shortName: string;
+  tagline: string;
+  description: string;
+  color: string;
+  initialMetrics: Metrics;
+  decayMultipliers: BrainTypeModifier;
+  baselineOffsets: BrainTypeModifier;
+  behaviorModifiers: BrainTypeBehaviorModifier;
+  traits: string[];
+  neuroporcelain: {
+    dopamineSystem: string;
+    attentionNetwork: string;
+    stressAxis: string;
+    controlCircuit: string;
+  };
+}
+
+export interface SimulatorState {
+  metrics: Metrics;
+  time: TimeState;
+  logs: LogEntry[];
+  currentMode: ModeId | null;
+  brainTypeId: BrainTypeId | null;
 }

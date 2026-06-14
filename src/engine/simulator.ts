@@ -1,5 +1,56 @@
-import type { Metrics, Mode, LogEntry, MetricType, DecayConfigs, Behavior, DynamicEffect, TimeState } from '../types';
+import type { Metrics, Mode, LogEntry, MetricType, DecayConfigs, Behavior, DynamicEffect, TimeState, BrainType, BrainTypeModifier } from '../types';
 import { MODES, DECAY_CONFIGS } from '../config/modes';
+import { getBrainTypeById } from '../config/brainTypes';
+
+const DEFAULT_MODIFIER: BrainTypeModifier = {
+  dopamine: 1,
+  stress: 1,
+  attention: 1,
+  fatigue: 1,
+};
+
+export function getBehaviorModifier(brainType: BrainType | null, behavior: Behavior): BrainTypeModifier {
+  if (!brainType) return DEFAULT_MODIFIER;
+  const behaviorSpecific = brainType.behaviorModifiers.behaviorMultipliers?.[behavior.id];
+  if (behaviorSpecific) return behaviorSpecific;
+  const categorySpecific = brainType.behaviorModifiers.categoryMultipliers?.[behavior.category];
+  if (categorySpecific) return categorySpecific;
+  return DEFAULT_MODIFIER;
+}
+
+export function applyBrainTypeModifier(
+  baseEffect: Partial<Metrics>,
+  modifier: BrainTypeModifier
+): Partial<Metrics> {
+  const result: Partial<Metrics> = {};
+  for (const key of Object.keys(baseEffect) as MetricType[]) {
+    const val = baseEffect[key];
+    if (val !== undefined) {
+      result[key] = val * modifier[key];
+    }
+  }
+  return result;
+}
+
+export function getDecayMultipliers(brainType: BrainType | null): BrainTypeModifier {
+  if (!brainType) return DEFAULT_MODIFIER;
+  return brainType.decayMultipliers;
+}
+
+export function getEffectiveDecayConfigs(brainType: BrainType | null, baseConfigs: DecayConfigs = DECAY_CONFIGS): DecayConfigs {
+  if (!brainType) return baseConfigs;
+  const multipliers = brainType.decayMultipliers;
+  const offsets = brainType.baselineOffsets;
+  const result: DecayConfigs = { ...baseConfigs };
+  for (const metric of ['dopamine', 'stress', 'attention', 'fatigue'] as MetricType[]) {
+    result[metric] = {
+      ...baseConfigs[metric],
+      baseline: clamp(baseConfigs[metric].baseline + offsets[metric], baseConfigs[metric].min, baseConfigs[metric].max),
+      ratePerHour: baseConfigs[metric].ratePerHour * multipliers[metric],
+    };
+  }
+  return result;
+}
 
 export function clamp(value: number, min = 0, max = 100): number {
   return Math.max(min, Math.min(max, value));
@@ -40,20 +91,22 @@ export function calculateDynamicEffect(
 
 export function calculateBehaviorEffect(
   currentMetrics: Metrics,
-  behavior: Behavior
+  behavior: Behavior,
+  brainType: BrainType | null = null
 ): Partial<Metrics> {
-  const effect: Partial<Metrics> = {};
+  const baseEffect: Partial<Metrics> = {};
 
   for (const key of Object.keys(behavior.effect) as MetricType[]) {
     const dynamicEffect = behavior.dynamicEffect?.[key];
     if (dynamicEffect) {
-      effect[key] = calculateDynamicEffect(currentMetrics, key, dynamicEffect);
+      baseEffect[key] = calculateDynamicEffect(currentMetrics, key, dynamicEffect);
     } else {
-      effect[key] = behavior.effect[key]!;
+      baseEffect[key] = behavior.effect[key]!;
     }
   }
 
-  return effect;
+  const modifier = getBehaviorModifier(brainType, behavior);
+  return applyBrainTypeModifier(baseEffect, modifier);
 }
 
 export function applyBehaviorEffect(
@@ -71,8 +124,14 @@ export function applyBehaviorEffect(
 export function applyDecay(
   currentMetrics: Metrics,
   hoursElapsed: number,
-  decayConfigs: DecayConfigs = DECAY_CONFIGS
+  decayConfigsOrBrainType: DecayConfigs | BrainType | null = DECAY_CONFIGS
 ): Metrics {
+  let decayConfigs: DecayConfigs;
+  if (decayConfigsOrBrainType && 'id' in decayConfigsOrBrainType && typeof decayConfigsOrBrainType.id === 'string') {
+    decayConfigs = getEffectiveDecayConfigs(decayConfigsOrBrainType as BrainType);
+  } else {
+    decayConfigs = (decayConfigsOrBrainType as DecayConfigs) || DECAY_CONFIGS;
+  }
   const metrics: MetricType[] = ['dopamine', 'stress', 'attention', 'fatigue'];
   const result = { ...currentMetrics };
 

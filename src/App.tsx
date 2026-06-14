@@ -1,10 +1,23 @@
+import { useState, useEffect } from 'react';
 import { StatusPanel } from './components/StatusPanel';
 import { ModeDisplay } from './components/ModeDisplay';
 import { BehaviorGrid } from './components/BehaviorGrid';
 import { ActionLog } from './components/ActionLog';
 import { ControlBar } from './components/ControlBar';
+import { BrainTypeSelector } from './components/BrainTypeSelector';
+import { NeuroReport } from './components/NeuroReport';
+import { useSimulator } from './hooks/useSimulator';
 
 function App() {
+  const brainTypeId = useSimulator((s) => s.brainTypeId);
+  const [showSelector, setShowSelector] = useState(false);
+
+  useEffect(() => {
+    if (!brainTypeId) {
+      setShowSelector(true);
+    }
+  }, [brainTypeId]);
+
   return (
     <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
@@ -18,7 +31,7 @@ function App() {
         </header>
 
         <div className="mb-6">
-          <ControlBar />
+          <ControlBar onOpenSelector={() => setShowSelector(true)} />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-12">
@@ -27,12 +40,13 @@ function App() {
             <StatusPanel />
           </div>
 
-          <div className="space-y-6 lg:col-span-5">
+          <div className="space-y-6 lg:col-span-4">
             <BehaviorGrid />
           </div>
 
-          <div className="lg:col-span-3">
-            <div className="h-full lg:max-h-[calc(100vh-160px)]">
+          <div className="space-y-6 lg:col-span-4">
+            <NeuroReport />
+            <div className="h-full lg:max-h-[calc(100vh-700px)]">
               <ActionLog />
             </div>
           </div>
@@ -42,6 +56,13 @@ function App() {
           数据仅供模拟参考 · 神经科学科普向交互实验
         </footer>
       </div>
+
+      {showSelector && (
+        <BrainTypeSelector
+          onClose={() => setShowSelector(false)}
+          showCloseButton={!!brainTypeId}
+        />
+      )}
     </div>
   );
 }
