@@ -37,6 +37,7 @@ export interface LogEntry {
   effect: Partial<Metrics>;
   timestamp: number;
   day: number;
+  isDayTransition?: boolean;
 }
 
 export interface SimulatorState {

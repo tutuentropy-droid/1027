@@ -97,3 +97,16 @@ export function getModeById(id: Mode['id'] | null): Mode | null {
   if (!id) return null;
   return MODES.find((m) => m.id === id) ?? null;
 }
+
+export const DAY_TRANSITION_EFFECT: Partial<Metrics> = {
+  dopamine: -15,
+  stress: -10,
+  attention: 15,
+  fatigue: -20,
+};
+
+export const DAY_TRANSITION_META = {
+  id: '__day_transition__',
+  name: '新的一天',
+  emoji: '🌅',
+} as const;

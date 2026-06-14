@@ -1,4 +1,4 @@
-import type { Metrics, Mode, LogEntry, Behavior } from '../types';
+import type { Metrics, Mode, LogEntry, MetricType } from '../types';
 import { MODES } from '../config/modes';
 
 export function clamp(value: number, min = 0, max = 100): number {
@@ -17,6 +17,21 @@ export function applyBehaviorEffect(
   };
 }
 
+export function computeActualEffect(
+  before: Metrics,
+  after: Metrics,
+  configuredEffect: Partial<Metrics>
+): Partial<Metrics> {
+  const actual: Partial<Metrics> = {};
+  for (const key of Object.keys(configuredEffect) as MetricType[]) {
+    const delta = after[key] - before[key];
+    if (delta !== 0) {
+      actual[key] = delta;
+    }
+  }
+  return actual;
+}
+
 export function evaluateMode(metrics: Metrics, modes: Mode[] = MODES): Mode['id'] | null {
   for (const mode of modes) {
     if (mode.check(metrics)) {
@@ -26,14 +41,22 @@ export function evaluateMode(metrics: Metrics, modes: Mode[] = MODES): Mode['id'
   return null;
 }
 
-export function createLogEntry(behavior: Behavior, day: number): LogEntry {
+export function createLogEntry(
+  behaviorId: string,
+  behaviorName: string,
+  behaviorEmoji: string,
+  actualEffect: Partial<Metrics>,
+  day: number,
+  isDayTransition = false
+): LogEntry {
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    behaviorId: behavior.id,
-    behaviorName: behavior.name,
-    behaviorEmoji: behavior.emoji,
-    effect: { ...behavior.effect },
+    behaviorId,
+    behaviorName,
+    behaviorEmoji,
+    effect: actualEffect,
     timestamp: Date.now(),
     day,
+    isDayTransition,
   };
 }

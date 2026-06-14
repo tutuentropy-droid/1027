@@ -27,14 +27,25 @@ export function ActionLog() {
           {logs.map((log) => (
             <div
               key={log.id}
-              className="rounded-xl border border-white/5 bg-white/[0.02] p-3 transition-colors hover:bg-white/[0.05]"
+              className={`
+                rounded-xl border p-3 transition-colors
+                ${log.isDayTransition
+                  ? 'border-amber-500/20 bg-amber-500/[0.05] hover:bg-amber-500/[0.08]'
+                  : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'
+                }
+              `}
             >
               <div className="mb-1.5 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{log.behaviorEmoji}</span>
-                  <span className="text-sm font-medium text-white/85">
+                  <span className={`text-sm font-medium ${log.isDayTransition ? 'text-amber-300' : 'text-white/85'}`}>
                     {log.behaviorName}
                   </span>
+                  {log.isDayTransition && (
+                    <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] text-amber-400">
+                      日切
+                    </span>
+                  )}
                 </div>
                 <span className="text-xs text-white/30">第{log.day}天</span>
               </div>
